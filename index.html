@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EventPass — Ticketing con QR</title>
+<style>
+:root{--acid:#c8ff00;--blk:#080808;--wht:#f5f2ec;--line:rgba(245,242,236,0.15);--red:#ff2d20;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--blk);color:var(--wht);font-family:monospace;font-size:13px;overflow-x:hidden;}
+@keyframes ticker{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+button{cursor:pointer;}
+input{outline:none;transition:border-color .2s;}
+input:focus{border-color:rgba(200,255,0,0.6)!important;}
+input::placeholder{color:rgba(245,242,236,0.35);}
+::-webkit-scrollbar{width:4px;}
+::-webkit-scrollbar-track{background:#050505;}
+::-webkit-scrollbar-thumb{background:rgba(200,255,0,0.35);}
+.nav{position:sticky;top:0;z-index:99;background:rgba(8,8,8,0.96);border-bottom:1px solid var(--line);padding:14px 28px;display:flex;justify-content:space-between;align-items:center;}
+.logo{font-family:serif;font-size:18px;font-weight:900;letter-spacing:6px;text-transform:uppercase;color:var(--wht);}
+.logo span{color:var(--acid);}
+.nav-links{display:flex;gap:24px;font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--wht);}
+.nav-cta{background:var(--acid);color:var(--blk);border:none;padding:9px 20px;font-family:monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;font-weight:700;}
+.ticker-wrap{overflow:hidden;border-bottom:1px solid var(--line);padding:8px 0;white-space:nowrap;background:#050505;}
+.ticker-inner{display:inline-block;animation:ticker 22s linear infinite;font-size:10px;letter-spacing:4px;color:var(--wht);text-transform:uppercase;}
+.hero{padding:64px 28px 52px;border-bottom:1px solid var(--line);}
+.live-badge{display:flex;align-items:center;gap:8px;font-size:10px;letter-spacing:3px;color:var(--red);text-transform:uppercase;margin-bottom:20px;font-weight:700;}
+.live-dot{width:7px;height:7px;background:var(--red);border-radius:50%;animation:blink 1.5s infinite;}
+.hero-title{font-family:serif;line-height:.88;font-weight:900;text-transform:uppercase;margin-bottom:28px;}
+.hero-title .l1{font-size:clamp(48px,9vw,120px);color:var(--wht);}
+.hero-title .l2{font-size:clamp(48px,9vw,120px);-webkit-text-stroke:1px var(--wht);color:transparent;}
+.hero-title .l3{font-size:clamp(32px,6vw,78px);font-style:italic;color:var(--acid);text-transform:none;font-weight:400;}
+.hero-sub{color:var(--wht);max-width:380px;line-height:1.8;margin-bottom:36px;font-size:13px;}
+.hero-btns{display:flex;gap:14px;flex-wrap:wrap;}
+.btn-acid{background:var(--acid);color:var(--blk);border:none;padding:15px 36px;font-family:monospace;font-size:12px;letter-spacing:3px;text-transform:uppercase;font-weight:700;}
+.btn-ghost{background:transparent;color:var(--wht);border:1px solid var(--wht);padding:15px 24px;font-family:monospace;font-size:11px;letter-spacing:3px;text-transform:uppercase;}
+.hero-stats{display:flex;gap:36px;margin-top:48px;flex-wrap:wrap;}
+.stat-num{font-family:serif;font-size:34px;font-weight:900;line-height:1;color:var(--wht);}
+.stat-label{font-size:10px;letter-spacing:3px;color:var(--wht);text-transform:uppercase;margin-top:4px;}
+.section{padding:60px 28px;}
+.section.dark{background:#050505;border-top:1px solid var(--line);}
+.sec-eyebrow{font-size:10px;letter-spacing:4px;color:var(--acid);text-transform:uppercase;margin-bottom:6px;font-weight:700;}
+.sec-title{font-family:serif;font-size:40px;font-weight:900;text-transform:uppercase;line-height:1;color:var(--wht);margin-bottom:36px;}
+.sec-header{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:36px;flex-wrap:wrap;gap:12px;}
+.filters{display:flex;gap:6px;flex-wrap:wrap;}
+.filter-btn{padding:7px 16px;background:transparent;border:1px solid var(--line);color:var(--wht);font-family:monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;transition:all .2s;}
+.filter-btn.active{background:var(--acid);border-color:var(--acid);color:var(--blk);}
+.events-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--line);border:1px solid var(--line);}
+.event-card{background:var(--blk);cursor:pointer;transition:background .25s;}
+.event-card:hover{background:#151515;}
+.event-card.featured{grid-column:span 2;}
+.card-visual{position:relative;display:flex;align-items:flex-end;padding:20px;overflow:hidden;}
+.card-bg-text{position:absolute;top:10px;right:16px;font-family:serif;color:rgba(200,255,0,0.05);font-weight:900;line-height:1;pointer-events:none;}
+.card-label{font-size:9px;letter-spacing:3px;color:var(--acid);text-transform:uppercase;margin-bottom:8px;font-weight:700;}
+.card-body{padding:18px 20px 16px;}
+.card-date{font-size:10px;letter-spacing:3px;color:var(--acid);text-transform:uppercase;font-weight:700;}
+.card-tag{font-size:9px;padding:3px 8px;border:1px solid rgba(245,242,236,0.3);color:var(--wht);letter-spacing:1px;}
+.card-loc{font-size:11px;color:var(--wht);letter-spacing:1px;text-transform:uppercase;margin-bottom:16px;margin-top:6px;}
+.card-price{font-family:serif;font-size:24px;font-weight:900;color:var(--wht);}
+.card-price small{font-family:monospace;font-size:10px;color:var(--wht);}
+.card-arrow{width:34px;height:34px;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;color:var(--acid);font-size:16px;transition:transform .2s;}
+.event-card:hover .card-arrow{transform:translate(3px,-3px);}
+.card-avail{font-size:10px;color:var(--wht);}
+.mods-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--line);}
+.mod-block{background:#050505;padding:28px 22px;}
+.mod-num{font-family:serif;font-size:44px;color:rgba(245,242,236,0.06);line-height:1;margin-bottom:8px;font-weight:900;}
+.mod-title{font-family:serif;font-size:20px;font-weight:900;text-transform:uppercase;margin-bottom:12px;line-height:1.1;color:var(--wht);}
+.mod-title span{color:var(--acid);}
+.mod-item{font-size:11px;color:var(--wht);padding:6px 0;border-bottom:1px solid rgba(245,242,236,0.08);display:flex;gap:8px;}
+.mod-item::before{content:'—';color:var(--acid);}
+.flow-steps{display:flex;flex-wrap:wrap;gap:24px;}
+.flow-step{flex:1 1 150px;}
+.step-num{width:54px;height:54px;border:1px solid rgba(245,242,236,0.3);display:flex;align-items:center;justify-content:center;margin-bottom:18px;font-family:serif;font-size:18px;color:var(--acid);font-weight:900;position:relative;}
+.step-num::before{content:'';position:absolute;inset:4px;border:1px solid rgba(200,255,0,0.2);}
+.step-title{font-family:serif;font-size:17px;font-weight:900;text-transform:uppercase;margin-bottom:8px;color:var(--wht);}
+.step-desc{font-size:11px;color:var(--wht);line-height:1.8;}
+.plans-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--line);}
+.plan-card{background:#050505;padding:32px 24px;}
+.plan-card.fp{background:var(--acid);}
+.plan-tag{display:inline-block;font-size:8px;letter-spacing:3px;text-transform:uppercase;padding:4px 10px;margin-bottom:20px;}
+.plan-price{font-family:serif;font-size:48px;line-height:1;margin-bottom:4px;font-weight:900;}
+.plan-period{font-size:11px;margin-bottom:24px;}
+.plan-hr{height:1px;margin-bottom:20px;}
+.plan-feat{font-size:11px;padding:5px 0;display:flex;gap:8px;}
+.plan-btn{width:100%;padding:12px;margin-top:20px;font-family:monospace;font-size:10px;letter-spacing:3px;text-transform:uppercase;}
+.footer{padding:36px 28px;border-top:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;}
+.footer-logo{font-family:serif;font-size:26px;font-weight:900;letter-spacing:6px;color:var(--wht);}
+.footer-logo span{color:var(--acid);}
+.footer-copy{font-size:10px;color:var(--wht);letter-spacing:2px;}
+.modal-overlay{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,0.93);display:flex;align-items:center;justify-content:center;padding:20px;animation:fadeIn .2s ease;}
+.modal-box{background:#0d0d0d;border:1px solid rgba(245,242,236,0.18);width:100%;max-width:680px;max-height:90vh;overflow-y:auto;}
+.modal-header{position:sticky;top:0;background:#0d0d0d;border-bottom:1px solid var(--line);padding:16px 24px;display:flex;justify-content:space-between;align-items:center;z-index:10;}
+.step-circ{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;transition:all .3s;}
+.step-ln{width:20px;height:1px;}
+.modal-close{background:transparent;border:1px solid rgba(245,242,236,0.3);color:var(--wht);width:32px;height:32px;font-size:18px;}
+.ttype{padding:14px 16px;border:1px solid var(--line);cursor:pointer;display:flex;justify-content:space-between;align-items:center;transition:all .2s;margin-bottom:8px;}
+.ttype.sel{border-color:var(--acid);background:rgba(200,255,0,0.07);}
+.ttype-name{font-size:12px;color:var(--wht);}
+.ttype-price{font-family:serif;font-size:20px;font-weight:900;color:var(--wht);}
+.ttype.sel .ttype-price{color:var(--acid);}
+.cap-bar{height:3px;background:var(--line);border-radius:2px;}
+.cap-fill{height:100%;background:var(--acid);border-radius:2px;}
+.sp-tag{padding:6px 14px;border:1px solid rgba(245,242,236,0.25);font-size:10px;color:var(--wht);letter-spacing:2px;text-transform:uppercase;}
+.flabel{font-size:9px;letter-spacing:3px;color:var(--acid);text-transform:uppercase;display:block;margin-bottom:6px;font-weight:700;}
+.finput{width:100%;padding:12px 14px;background:transparent;border:1px solid rgba(245,242,236,0.2);color:var(--wht);font-family:monospace;font-size:12px;}
+.ticket-mock{border:1px solid rgba(200,255,0,0.4);background:#0a0a0a;max-width:400px;margin:0 auto 24px;}
+.t-acid-line{height:3px;background:var(--acid);}
+.t-sp-bar{background:rgba(200,255,0,0.07);border-bottom:1px solid rgba(200,255,0,0.15);padding:10px 20px;display:flex;justify-content:space-between;align-items:center;}
+.t-header{padding:20px 20px 14px;border-bottom:1px dashed rgba(245,242,236,0.1);}
+.t-fields{padding:16px 20px;display:grid;grid-template-columns:1fr 1fr;gap:12px;border-bottom:1px dashed rgba(245,242,236,0.1);}
+.t-field-lbl{font-size:8px;letter-spacing:3px;color:var(--acid);text-transform:uppercase;margin-bottom:3px;font-weight:700;}
+.t-field-val{font-size:11px;color:var(--wht);}
+.t-footer{padding:16px 20px;display:flex;justify-content:space-between;align-items:center;}
+.t-id{font-family:monospace;font-size:8px;color:var(--wht);letter-spacing:2px;}
+.t-ad{background:rgba(200,255,0,0.07);border-top:1px dashed rgba(200,255,0,0.18);padding:10px 20px;text-align:center;font-size:9px;color:var(--acid);letter-spacing:2px;text-transform:uppercase;font-weight:700;}
+.events-hint{text-align:center;margin-top:18px;font-size:11px;color:var(--wht);letter-spacing:2px;}
+</style>
+</head>
+<body>
+<div id="modal" class="modal-overlay" style="display:none;">
+  <div class="modal-box" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <div id="step-ind" style="display:flex;gap:10px;align-items:center;"></div>
+      <button class="modal-close" onclick="closeModal()">×</button>
+    </div>
+    <div id="modal-body"></div>
+  </div>
+</div>
+<div class="nav">
+  <div class="logo">EVENT<span>PASS</span></div>
+  <div class="nav-links"><span>Eventos</span><span>Módulos</span><span>QR</span><span>Planes</span></div>
+  <button class="nav-cta">Crear evento</button>
+</div>
+<div class="ticker-wrap">
+  <span class="ticker-inner">EVENTOS · CONCIERTOS · FESTIVALES · TEATRO · DEPORTES · NETWORKING · ARTE · GASTRONOMÍA · EVENTOS · CONCIERTOS · FESTIVALES · TEATRO · DEPORTES · NETWORKING · ARTE · GASTRONOMÍA · </span>
+</div>
+<div class="hero">
+  <div class="live-badge"><span class="live-dot"></span>12 eventos activos hoy</div>
+  <div class="hero-title">
+    <div class="l1">TU ENTRADA</div>
+    <div class="l2">AL SIGUIENTE</div>
+    <div class="l3">momento.</div>
+  </div>
+  <p class="hero-sub">Ticketing con QR único, pagos integrados y validación en tiempo real. Para organizadores que exigen más.</p>
+  <div class="hero-btns">
+    <button class="btn-acid">Ver eventos</button>
+    <button class="btn-ghost">Cómo funciona →</button>
+  </div>
+  <div class="hero-stats">
+    <div><div class="stat-num">48K</div><div class="stat-label">Entradas vendidas</div></div>
+    <div><div class="stat-num">320</div><div class="stat-label">Eventos activos</div></div>
+    <div><div class="stat-num">99.8%</div><div class="stat-label">QR validados</div></div>
+  </div>
+</div>
+<div class="section" id="events-section">
+  <div class="sec-header">
+    <div><div class="sec-eyebrow">Próximos</div><div class="sec-title" style="margin-bottom:0">EVENTOS</div></div>
+    <div class="filters">
+      <button class="filter-btn active" onclick="setFilter(this,'Todos')">Todos</button>
+      <button class="filter-btn" onclick="setFilter(this,'Música')">Música</button>
+      <button class="filter-btn" onclick="setFilter(this,'Arte')">Arte</button>
+      <button class="filter-btn" onclick="setFilter(this,'Tech')">Tech</button>
+    </div>
+  </div>
+  <div class="events-grid" id="events-grid"></div>
+  <div class="events-hint">↑ Haz clic en cualquier evento para ver detalles y comprar entrada</div>
+</div>
+<div class="section dark">
+  <div class="sec-eyebrow">Arquitectura del sistema</div>
+  <div class="sec-title">MÓDULOS</div>
+  <div class="mods-grid">
+    <div class="mod-block"><div class="mod-num">01</div><div style="font-size:20px;margin-bottom:10px">🎫</div><div class="mod-title"><span>GESTIÓN</span> DE EVENTOS</div><div class="mod-item">Multi-tipo de entrada</div><div class="mod-item">Control de aforos</div><div class="mod-item">Precio dinámico</div><div class="mod-item">Galería multimedia</div></div>
+    <div class="mod-block"><div class="mod-num">02</div><div style="font-size:20px;margin-bottom:10px">💳</div><div class="mod-title"><span>PAGOS</span> Y CHECKOUT</div><div class="mod-item">Stripe / PayPal</div><div class="mod-item">Pago en Bs. + BCV</div><div class="mod-item">Checkout 1 pantalla</div><div class="mod-item">Factura PDF auto</div></div>
+    <div class="mod-block"><div class="mod-num">03</div><div style="font-size:20px;margin-bottom:10px">📲</div><div class="mod-title"><span>QR</span> + VALIDACIÓN</div><div class="mod-item">QR único por compra</div><div class="mod-item">App validación móvil</div><div class="mod-item">Anti-duplicado RT</div><div class="mod-item">Log de accesos</div></div>
+    <div class="mod-block"><div class="mod-num">04</div><div style="font-size:20px;margin-bottom:10px">👤</div><div class="mod-title"><span>PORTAL</span> COMPRADOR</div><div class="mod-item">Auth Google / WA</div><div class="mod-item">Wallet de entradas</div><div class="mod-item">Transferencia</div><div class="mod-item">Push / Email</div></div>
+    <div class="mod-block"><div class="mod-num">05</div><div style="font-size:20px;margin-bottom:10px">📊</div><div class="mod-title"><span>ANALYTICS</span></div><div class="mod-item">Ventas en vivo</div><div class="mod-item">Exportación CSV</div><div class="mod-item">Reporte post-evento</div><div class="mod-item">Gráficas de embudo</div></div>
+    <div class="mod-block"><div class="mod-num">06</div><div style="font-size:20px;margin-bottom:10px">🔔</div><div class="mod-title"><span>CRM</span> NOTIFICACIONES</div><div class="mod-item">Email post-compra</div><div class="mod-item">WhatsApp + QR</div><div class="mod-item">Recordatorio 24h</div><div class="mod-item">Lista de espera</div></div>
+  </div>
+</div>
+<div class="section">
+  <div class="sec-eyebrow">Experiencia de usuario</div>
+  <div class="sec-title">FLUJO DE COMPRA</div>
+  <div class="flow-steps">
+    <div class="flow-step"><div class="step-num">01</div><div class="step-title">Descubre</div><div class="step-desc">Navega y filtra eventos por categoría o fecha.</div></div>
+    <div class="flow-step"><div class="step-num">02</div><div class="step-title">Selecciona</div><div class="step-desc">Elige tipo de entrada (general, VIP, mesa) y cantidad.</div></div>
+    <div class="flow-step"><div class="step-num">03</div><div class="step-title">Paga</div><div class="step-desc">Stripe/PayPal en menos de 60 segundos.</div></div>
+    <div class="flow-step"><div class="step-num">04</div><div class="step-title">QR generado</div><div class="step-desc">Llega por email y WhatsApp al instante.</div></div>
+    <div class="flow-step"><div class="step-num">05</div><div class="step-title">Accede</div><div class="step-desc">Staff escanea. Validado en menos de 1 segundo.</div></div>
+  </div>
+</div>
+<div class="section dark">
+  <div class="sec-eyebrow">Para organizadores</div>
+  <div class="sec-title">PLANES</div>
+  <div class="plans-grid">
+    <div class="plan-card"><div class="plan-tag" style="background:rgba(200,255,0,0.1);color:var(--acid);">Gratis</div><div class="plan-price" style="color:var(--wht);">$0</div><div class="plan-period" style="color:var(--wht);">/ mes · hasta 100 entradas</div><div class="plan-hr" style="background:var(--line);"></div><div class="plan-feat" style="color:var(--wht);"><span style="color:var(--acid)">✓</span> 2 eventos activos</div><div class="plan-feat" style="color:var(--wht);"><span style="color:var(--acid)">✓</span> QR básico</div><div class="plan-feat" style="color:var(--wht);"><span style="color:var(--acid)">✓</span> Email automático</div><div class="plan-feat" style="color:var(--wht);"><span style="color:var(--acid)">✓</span> 5% fee</div><button class="plan-btn" style="background:transparent;border:1px solid rgba(245,242,236,0.3);color:var(--wht);">Comenzar gratis</button></div>
+    <div class="plan-card fp"><div class="plan-tag" style="background:rgba(0,0,0,0.15);color:#000;">Más popular</div><div class="plan-price" style="color:#000;">$49</div><div class="plan-period" style="color:rgba(0,0,0,0.6);">/ mes · sin límite</div><div class="plan-hr" style="background:rgba(0,0,0,0.15);"></div><div class="plan-feat" style="color:#000;"><span>✓</span> Eventos ilimitados</div><div class="plan-feat" style="color:#000;"><span>✓</span> WhatsApp + Apple Wallet</div><div class="plan-feat" style="color:#000;"><span>✓</span> Analytics live</div><div class="plan-feat" style="color:#000;"><span>✓</span> 2.5% fee</div><div class="plan-feat" style="color:#000;"><span>✓</span> Soporte 24/7</div><button class="plan-btn" style="background:#000;border:none;color:var(--acid);">Empezar ahora</button></div>
+    <div class="plan-card"><div class="plan-tag" style="background:rgba(200,255,0,0.1);color:var(--acid);">Enterprise</div><div class="plan-price" style="color:var(--wht);">Custom</div><div class="plan-period" style="color:var(--wht);">/ según volumen</div><div class="plan-hr" style="background:var(--line);"></div><div class="plan-feat" style="color:var(--wht);"><span style="color:var(--acid)">✓</span> White-label</div><div class="plan-feat" style="color:var(--wht);"><span style="color:var(--acid)">✓</span> API completa</div><div class="plan-feat" style="color:var(--wht);"><span style="color:var(--acid)">✓</span> Dominio propio</div><div class="plan-feat" style="color:var(--wht);"><span style="color:var(--acid)">✓</span> 0% fee negociable</div><div class="plan-feat" style="color:var(--wht);"><span style="color:var(--acid)">✓</span> Onboarding dedicado</div><button class="plan-btn" style="background:transparent;border:1px solid rgba(245,242,236,0.3);color:var(--wht);">Contactar</button></div>
+  </div>
+</div>
+<div class="footer">
+  <div class="footer-logo">EVENT<span>PASS</span></div>
+  <div class="footer-copy">© 2025 EventPass · Ticketing con QR único</div>
+</div>
+<script>
+const EVENTS=[
+  {id:1,featured:true,gradient:"linear-gradient(135deg,#141408,#252508)",bgText:"LIVE",label:"Festival Destacado",title:"Noche de Jazz & Arte Electrónico",date:"15 Jun 2025",time:"8:00 PM",tag:"Jazz / Electronic",loc:"Centro Cultural, Caracas",price:45,capacity:500,sold:312,desc:"Una noche única donde el jazz clásico se fusiona con la electrónica experimental. Artistas internacionales en un escenario inmersivo con instalaciones de arte en vivo.",sponsors:["ArtCorp","SoundWave","Caracas Live"],types:[{name:"General",price:45},{name:"VIP",price:95},{name:"Mesa (4 personas)",price:320}]},
+  {id:2,featured:false,gradient:"linear-gradient(135deg,#0a0a1a,#0f0f28)",bgText:"TECH",label:"",title:"Dev Summit 2025",date:"22 Jun 2025",time:"9:00 AM",tag:"Tecnología",loc:"Hotel Tamanaco, Caracas",price:80,capacity:300,sold:210,desc:"La conferencia de tecnología más importante de Venezuela. Speakers internacionales, workshops prácticos y networking con los mejores desarrolladores de LATAM.",sponsors:["TechVE","AWS","Google Cloud"],types:[{name:"Asistente",price:80},{name:"Speaker Pass",price:150},{name:"Workshop Bundle",price:200}]},
+  {id:3,featured:false,gradient:"linear-gradient(135deg,#1a0a0a,#280f0f)",bgText:"ART",label:"",title:"Formas y Vacíos",date:"28 Jun 2025",time:"6:00 PM",tag:"Arte",loc:"Galería Arte Nacional, Caracas",price:15,capacity:200,sold:88,desc:"Exposición de arte contemporáneo venezolano. Más de 40 obras de artistas emergentes explorando la geometría, el vacío y la identidad latinoamericana.",sponsors:["Fundarte","GaleríaVE"],types:[{name:"Entrada General",price:15},{name:"Entrada + Catálogo",price:35}]},
+];
+let cur=null,selType=null,qty=1,step=1,fd={name:"",email:"",phone:""},tid="";
+function setFilter(btn,f){document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');renderEvents(f);}
+function renderEvents(f="Todos"){
+  const g=document.getElementById('events-grid');
+  const list=f==="Todos"?EVENTS:EVENTS.filter(e=>(f==="Música"&&e.tag.includes("Jazz"))||(f==="Tech"&&e.tag==="Tecnología")||(f==="Arte"&&e.tag==="Arte"));
+  g.innerHTML=list.map(ev=>`<div class="event-card ${ev.featured?'featured':''}" onclick="openEv(${ev.id})"><div class="card-visual" style="background:${ev.gradient};height:${ev.featured?260:180}px"><div class="card-bg-text" style="font-size:${ev.featured?80:52}px">${ev.bgText}</div><div style="position:relative;z-index:1;">${ev.label?`<div class="card-label">${ev.label}</div>`:''}<div style="font-family:serif;font-size:${ev.featured?26:18}px;line-height:1.1;font-style:italic;color:#f5f2ec;">${ev.title}</div></div></div><div class="card-body"><div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span class="card-date">${ev.date} · ${ev.time}</span><span class="card-tag">${ev.tag}</span></div><div class="card-loc">📍 ${ev.loc}</div><div style="display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--line);padding-top:14px;"><div class="card-price">$${ev.price} <small>USD</small></div><div style="display:flex;align-items:center;gap:10px;"><span class="card-avail">${ev.capacity-ev.sold} disponibles</span><div class="card-arrow">↗</div></div></div></div></div>`).join('');
+}
+function openEv(id){cur=EVENTS.find(e=>e.id===id);selType=cur.types[0];qty=1;step=1;fd={name:"",email:"",phone:""};tid="EP-"+Math.random().toString(36).substr(2,8).toUpperCase();document.getElementById('modal').style.display='flex';renderModal();}
+function closeModal(){document.getElementById('modal').style.display='none';}
+document.getElementById('modal').addEventListener('click',function(e){if(e.target===this)closeModal();});
+function updSteps(){document.getElementById('step-ind').innerHTML=[1,2,3].map(n=>`<div class="step-circ" style="background:${step>=n?'var(--acid)':'transparent'};border:1px solid ${step>=n?'var(--acid)':'rgba(245,242,236,0.3)'};color:${step>=n?'#000':'#f5f2ec'};">${n}</div>${n<3?`<div class="step-ln" style="background:${step>n?'var(--acid)':'rgba(245,242,236,0.2)'}"></div>`:''}`).join('');}
+function renderModal(){
+  updSteps();const ev=cur,b=document.getElementById('modal-body');
+  if(step===1){const pct=Math.round((ev.sold/ev.capacity)*100);b.innerHTML=`<div style="height:200px;background:${ev.gradient};position:relative;display:flex;align-items:flex-end;padding:24px;overflow:hidden;"><div style="position:absolute;top:16px;right:20px;font-family:serif;font-size:80px;color:rgba(200,255,0,0.05);font-weight:900;line-height:1;">${ev.bgText}</div><div style="position:relative;z-index:1;"><div style="font-size:9px;letter-spacing:3px;color:var(--acid);text-transform:uppercase;margin-bottom:8px;font-weight:700;">${ev.tag}</div><div style="font-family:serif;font-size:26px;font-style:italic;line-height:1.1;color:#f5f2ec;">${ev.title}</div></div></div><div style="padding:24px;"><div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:22px;">${[['📅',ev.date],['🕐',ev.time],['📍',ev.loc.split(',')[0]]].map(([ic,v])=>`<div><div style="font-size:9px;letter-spacing:2px;color:var(--acid);text-transform:uppercase;margin-bottom:4px;font-weight:700;">${ic}</div><div style="font-size:11px;color:#f5f2ec;">${v}</div></div>`).join('')}</div><p style="font-size:12px;color:#f5f2ec;line-height:1.8;margin-bottom:22px;">${ev.desc}</p><div style="margin-bottom:22px;"><div style="display:flex;justify-content:space-between;margin-bottom:8px;"><span style="font-size:10px;color:#f5f2ec;letter-spacing:2px;text-transform:uppercase;font-weight:700;">Disponibilidad</span><span style="font-size:10px;color:var(--acid);font-weight:700;">${ev.capacity-ev.sold} de ${ev.capacity}</span></div><div class="cap-bar"><div class="cap-fill" style="width:${pct}%"></div></div></div><div style="margin-bottom:22px;"><div style="font-size:10px;color:#f5f2ec;letter-spacing:3px;text-transform:uppercase;margin-bottom:12px;font-weight:700;">Tipo de entrada</div>${ev.types.map(t=>`<div class="ttype ${selType.name===t.name?'sel':''}" onclick="selTipo('${t.name}',${t.price})"><div class="ttype-name">${t.name}</div><div class="ttype-price" style="color:${selType.name===t.name?'var(--acid)':'#f5f2ec'}">$${t.price} <span style="font-family:monospace;font-size:9px;color:#f5f2ec">USD</span></div></div>`).join('')}</div><div style="border-top:1px solid var(--line);padding-top:20px;margin-bottom:22px;"><div style="font-size:10px;color:#f5f2ec;letter-spacing:3px;text-transform:uppercase;margin-bottom:12px;font-weight:700;">Patrocinado por</div><div style="display:flex;gap:10px;flex-wrap:wrap;">${ev.sponsors.map(s=>`<div class="sp-tag">${s}</div>`).join('')}</div></div><button onclick="goStep(2)" style="width:100%;padding:16px;background:var(--acid);color:#000;border:none;font-family:monospace;font-size:12px;letter-spacing:3px;text-transform:uppercase;font-weight:700;">Comprar entrada →</button></div>`;}
+  else if(step===2){const total=selType.price*qty;b.innerHTML=`<div style="padding:24px;"><div style="font-family:serif;font-size:28px;font-weight:900;text-transform:uppercase;margin-bottom:6px;color:#f5f2ec;">DATOS DE COMPRA</div><div style="font-size:11px;color:#f5f2ec;margin-bottom:28px;">${ev.title}</div><div style="background:rgba(200,255,0,0.05);border:1px solid rgba(200,255,0,0.25);padding:16px;margin-bottom:24px;"><div style="display:flex;justify-content:space-between;margin-bottom:8px;"><span style="font-size:11px;color:#f5f2ec;">${selType.name}</span><span style="font-size:11px;color:var(--acid);font-weight:700;">$${selType.price} USD c/u</span></div><div style="display:flex;justify-content:space-between;align-items:center;"><span style="font-size:11px;color:#f5f2ec;">Cantidad</span><div style="display:flex;gap:12px;align-items:center;"><button onclick="chQty(-1)" style="width:28px;height:28px;background:transparent;border:1px solid rgba(245,242,236,0.3);color:#f5f2ec;font-size:16px;">−</button><span id="qdsp" style="font-size:16px;font-weight:700;color:#f5f2ec;min-width:20px;text-align:center;">${qty}</span><button onclick="chQty(1)" style="width:28px;height:28px;background:transparent;border:1px solid rgba(245,242,236,0.3);color:#f5f2ec;font-size:16px;">+</button></div></div><div style="border-top:1px solid var(--line);margin-top:12px;padding-top:12px;display:flex;justify-content:space-between;"><span style="font-size:12px;color:#f5f2ec;font-weight:700;">TOTAL</span><span id="tdsp" style="font-family:serif;font-size:24px;font-weight:900;color:var(--acid);">$${total} USD</span></div></div>${[['Nombre completo','name','text'],['Email','email','email'],['Teléfono (WhatsApp)','phone','tel']].map(([lbl,field,type])=>`<div style="margin-bottom:14px;"><label class="flabel">${lbl}</label><input type="${type}" class="finput" id="f-${field}" value="${fd[field]||''}" placeholder="${lbl}" oninput="upd('${field}',this.value)"/></div>`).join('')}<div style="font-size:11px;color:#f5f2ec;margin-bottom:22px;line-height:1.7;">El QR único será enviado a tu email y WhatsApp al confirmar.</div><div style="display:flex;gap:12px;"><button onclick="goStep(1)" style="flex:1;padding:14px;background:transparent;border:1px solid rgba(245,242,236,0.3);color:#f5f2ec;font-family:monospace;font-size:11px;letter-spacing:2px;text-transform:uppercase;">← Volver</button><button onclick="confirmP()" style="flex:2;padding:14px;background:var(--acid);color:#000;border:none;font-family:monospace;font-size:12px;letter-spacing:3px;text-transform:uppercase;font-weight:700;">Confirmar y pagar →</button></div></div>`;}
+  else if(step===3){const total=selType.price*qty;b.innerHTML=`<div style="padding:24px;"><div style="text-align:center;font-size:40px;margin-bottom:12px;">✅</div><div style="font-family:serif;font-size:28px;font-weight:900;text-transform:uppercase;color:var(--acid);text-align:center;margin-bottom:6px;">¡ENTRADA CONFIRMADA!</div><div style="font-size:11px;color:#f5f2ec;text-align:center;margin-bottom:24px;">QR enviado a ${fd.email}</div><div class="ticket-mock"><div class="t-acid-line"></div><div class="t-sp-bar"><div style="font-size:8px;letter-spacing:3px;color:#f5f2ec;text-transform:uppercase;font-weight:700;">Patrocinado por</div><div style="display:flex;gap:10px;">${ev.sponsors.map(s=>`<span style="font-size:9px;letter-spacing:2px;color:var(--acid);text-transform:uppercase;font-weight:700;">${s}</span>`).join('')}</div></div><div class="t-header"><div style="font-size:8px;letter-spacing:4px;color:var(--acid);text-transform:uppercase;margin-bottom:6px;font-weight:700;">Tu entrada — EventPass</div><div style="font-family:serif;font-size:22px;line-height:1.1;font-style:italic;color:#f5f2ec;">${ev.title}</div></div><div class="t-fields">${[['Fecha',ev.date],['Hora',ev.time],['Lugar',ev.loc.split(',')[0]],['Zona',selType.name],['Asistente',fd.name||'Asistente'],['Cant.','x'+qty]].map(([l,v])=>`<div><div class="t-field-lbl">${l}</div><div class="t-field-val">${v}</div></div>`).join('')}</div><div class="t-footer"><div><div class="t-id">${tid}</div><div style="font-size:8px;color:#f5f2ec;margin-top:3px;">QR único · No transferible</div><div style="font-family:serif;font-size:18px;font-weight:900;color:var(--acid);margin-top:6px;">$${total} USD</div></div><div style="background:#fff;padding:6px;"><canvas id="qrc" width="80" height="80"></canvas></div></div><div class="t-ad">${ev.sponsors[0]} — Orgulloso patrocinante</div></div><div style="display:flex;gap:10px;"><button style="flex:1;padding:13px;background:var(--acid);color:#000;border:none;font-family:monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;font-weight:700;">↓ Descargar PDF</button><button onclick="closeModal()" style="flex:1;padding:13px;background:transparent;border:1px solid rgba(245,242,236,0.3);color:#f5f2ec;font-family:monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;">Cerrar</button></div></div>`;setTimeout(()=>drawQR(tid+ev.title+fd.name),80);}
+}
+function drawQR(data){const c=document.getElementById('qrc');if(!c)return;const ctx=c.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,80,80);const h=data.split('').reduce((a,ch)=>((a<<5)-a+ch.charCodeAt(0))|0,0);const cells=21,cell=Math.floor(80/cells);const rnd=(i,j)=>Math.abs(Math.sin(h+i*31+j*17)*43758.5453)%1>0.5;[[0,0],[0,14],[14,0]].forEach(([r,c])=>{ctx.fillStyle='#000';ctx.fillRect(c*cell,r*cell,7*cell,7*cell);ctx.fillStyle='#fff';ctx.fillRect((c+1)*cell,(r+1)*cell,5*cell,5*cell);ctx.fillStyle='#000';ctx.fillRect((c+2)*cell,(r+2)*cell,3*cell,3*cell);});for(let i=0;i<cells;i++)for(let j=0;j<cells;j++){if(!((i<8&&j<8)||(i<8&&j>12)||(i>12&&j<8))&&rnd(i,j)){ctx.fillStyle='#000';ctx.fillRect(j*cell,i*cell,cell,cell);}}}
+function selTipo(name,price){selType={name,price};renderModal();}
+function chQty(d){qty=Math.max(1,qty+d);document.getElementById('qdsp').textContent=qty;document.getElementById('tdsp').textContent='$'+(selType.price*qty)+' USD';}
+function upd(f,v){fd[f]=v;}
+function confirmP(){if(!fd.name||!fd.email){alert('Completa nombre y email');return;}goStep(3);}
+function goStep(n){step=n;renderModal();document.querySelector('.modal-box').scrollTop=0;}
+renderEvents();
+</script>
+</body>
+</html>
